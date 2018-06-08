@@ -18,6 +18,41 @@ data Terminal
     | Terminal'Draw
     deriving (Show, Eq)
 
+data Move = Move
+    { moveFrom :: (Int, Int)
+    , moveTo :: (Int, Int)
+    } deriving (Show, Eq)
+
+class Monad m => Game m where
+    getMove :: Board -> Checker -> m Move
+    invalidateMove :: Board -> Checker -> Move -> m ()
+    validatedMove :: Board -> Board -> Checker -> Move -> m ()
+    terminate :: Board -> Terminal -> m ()
+    applyMove :: Board -> Move -> m (Maybe Board)
+    applyMove board move = return $ applyMove' board move
+
+startGame :: Game m => m ()
+startGame = play emptyBoard Checker'Black
+
+play :: Game m => Board -> Checker -> m ()
+play b c = case terminal b of
+    Nothing -> do
+        move <- getMove b c
+        applied <- applyMove b move
+        case applied of
+            Nothing -> invalidateMove b c move
+            Just b' -> do
+                validatedMove b b' c move
+                play b' (opponent c)
+    Just term -> terminate b term
+
+applyMove' :: Board -> Move -> Maybe Board
+applyMove' board _move = Just board
+
+opponent :: Checker -> Checker
+opponent Checker'Black = Checker'White
+opponent Checker'White = Checker'Black
+
 terminal :: Board -> Maybe Terminal
 terminal b = case (whiteWinner b, blackWinner b) of
     (True, True) -> Just Terminal'Draw
