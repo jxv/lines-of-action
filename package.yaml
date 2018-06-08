@@ -24,6 +24,7 @@ library:
   dependencies:
   - base
   - containers
+  - safe
   source-dirs: library
 
 benchmarks:
