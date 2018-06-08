@@ -13,12 +13,30 @@ data Checker
 newtype Board = Board (Map.Map (Int, Int) Checker)
     deriving (Show, Eq)
 
+data Terminal
+    = Terminal'Winner Checker
+    | Terminal'Draw
+    deriving (Show, Eq)
+
+terminal :: Board -> Maybe Terminal
+terminal b = case (whiteWinner b, blackWinner b) of
+    (True, True) -> Just Terminal'Draw
+    (False, True) -> Just $ Terminal'Winner Checker'Black
+    (True, False) -> Just $ Terminal'Winner Checker'White
+    (False, False) -> Nothing
+
 emptyBoard :: Board
 emptyBoard = Board $ Map.fromList $
     [ ((x,y), c) | x <- [1..6], let y = 0, let c = Checker'Black ] ++
     [ ((x,y), c) | x <- [1..6], let y = 7, let c = Checker'Black ] ++
     [ ((x,y), c) | y <- [1..6], let x = 0, let c = Checker'White ] ++
     [ ((x,y), c) | y <- [1..6], let x = 7, let c = Checker'White ]
+
+whiteWinner :: Board -> Bool
+whiteWinner = allConnected Checker'White
+
+blackWinner :: Board -> Bool
+blackWinner = allConnected Checker'Black
 
 allConnected :: Checker -> Board -> Bool
 allConnected c (Board b) = case headMay (Set.toList indices) of
