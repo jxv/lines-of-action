@@ -57,9 +57,10 @@ play b c = case terminal b of
     Just term -> terminate b term
 
 applyMove' :: Board -> Move -> Maybe Board
-applyMove' board move@Move{moveFrom,moveTo} = do
+applyMove' board@(Board m) move@Move{moveFrom,moveTo,moveChecker} = do
+    c <- Map.lookup moveFrom m
     cells <- moveCells board moveFrom
-    if elem moveTo cells
+    if elem moveTo cells && c == moveChecker
         then Just $ moveCheckerOnBoard board move
         else Nothing
 
