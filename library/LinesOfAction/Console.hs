@@ -10,12 +10,16 @@ import LinesOfAction
 newtype Console a = Console (StateT Board IO a)
     deriving (Functor, Applicative, Monad, MonadIO)
 
+runConsole :: Console a -> Board -> IO a
+runConsole (Console m) b = evalStateT m b
+
 instance Game Console where
     getMove b c = do
         liftIO $ putStrLn $ case c of
             Checker'White -> "Turn: White"
             Checker'Black -> "Turn: Black"
         liftIO $ print b
+        liftIO $ putStr "Input (eg. 1,1 2,0): "
         line <- liftIO getLine
         case line of
             x0:',':y0:' ':x1:',':y1:[] -> let
@@ -43,5 +47,4 @@ instance Game Console where
 
 
 main :: IO ()
-main = evalStateT m emptyBoard
-    where (Console m) = startGame
+main = runConsole startGame emptyBoard

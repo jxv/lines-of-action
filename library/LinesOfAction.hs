@@ -58,28 +58,26 @@ play b c = case terminal b of
 
 applyMove' :: Board -> Move -> Maybe Board
 applyMove' board@(Board m) move@Move{moveFrom,moveTo,moveChecker} = do
-    c <- Map.lookup moveFrom m
-    cells <- moveCells board moveFrom
-    if elem moveTo cells && c == moveChecker
-        then Just $ moveCheckerOnBoard board move
+    checker <- Map.lookup moveFrom m
+    cells <- movableCells board moveFrom
+    if elem moveTo cells && checker == moveChecker
+        then Just $ placeCheckerOnBoard board move
         else Nothing
 
-moveCheckerOnBoard :: Board -> Move -> Board
-moveCheckerOnBoard (Board m) move = Board
+placeCheckerOnBoard :: Board -> Move -> Board
+placeCheckerOnBoard (Board m) move = Board
     $ Map.delete (moveFrom move)
     $ Map.insert (moveTo move) (moveChecker move) m
 
-moveCells :: Board -> (Int, Int) -> Maybe [(Int, Int)]
-moveCells b@(Board m) xy = do
-  c <- Map.lookup xy m
-  return $ eliagbleMoveCells b c xy
+movableCells :: Board -> (Int, Int) -> Maybe [(Int, Int)]
+movableCells b@(Board m) xy = flip (movableCellsWithChecker b) xy <$> Map.lookup xy m
 
-eliagbleMoveCells :: Board -> Checker -> (Int, Int) -> [(Int,Int)]
-eliagbleMoveCells b c xy =
-    filterOrdered c (lookupCells b $ listIndicesVert vertCount xy) ++
-    filterOrdered c (lookupCells b $ listIndicesHorz horzCount xy) ++
-    filterOrdered c (lookupCells b $ listIndicesUpwards upCount xy) ++
-    filterOrdered c (lookupCells b $ listIndicesDownwards downCount xy)
+movableCellsWithChecker :: Board -> Checker -> (Int, Int) -> [(Int,Int)]
+movableCellsWithChecker b checker xy =
+    filterOrdered checker (lookupCells b $ listIndicesVert vertCount xy) ++
+    filterOrdered checker (lookupCells b $ listIndicesHorz horzCount xy) ++
+    filterOrdered checker (lookupCells b $ listIndicesUpwards upCount xy) ++
+    filterOrdered checker (lookupCells b $ listIndicesDownwards downCount xy)
   where
     vertCount = verticalCount b xy
     horzCount = horizontalCount b xy
@@ -150,7 +148,7 @@ terminal b = case (whiteWinner b, blackWinner b) of
     (False, False) -> Nothing
 
 emptyBoard :: Board
-emptyBoard = Board $ Map.fromList $
+emptyBoard = Board . Map.fromList $
     [ ((x,y), c) | x <- [1..6], let y = 0, let c = Checker'Black ] ++
     [ ((x,y), c) | x <- [1..6], let y = 7, let c = Checker'Black ] ++
     [ ((x,y), c) | y <- [1..6], let x = 0, let c = Checker'White ] ++
@@ -169,8 +167,8 @@ allConnected c (Board b) = case headMay (Set.toList indices) of
     where
         indices = Set.fromList $ Map.keys (Map.filter (== c) b)
 
-neighbor :: Set.Set (Int, Int) -> (Int, Int) -> Set.Set (Int, Int)
-neighbor s (x,y) = Set.fromList $ filter (flip Set.member s)
+neighbors :: Set.Set (Int, Int) -> (Int, Int) -> Set.Set (Int, Int)
+neighbors s (x,y) = Set.fromList $ filter (flip Set.member s)
     [ (x + x', y + y')
     | x' <- [(-1)..1]
     , y' <- [(-1)..1]
@@ -179,9 +177,9 @@ neighbor s (x,y) = Set.fromList $ filter (flip Set.member s)
 
 connected :: Set.Set (Int, Int) -> Set.Set (Int, Int) -> (Int, Int) -> Set.Set (Int, Int)
 connected explored board xy = let
-    neighbors = neighbor board xy
-    frontier = Set.difference neighbors explored
-    explored' = Set.union neighbors explored
-    in if Set.null neighbors
+    ns = neighbors board xy
+    frontier = Set.difference ns explored
+    explored' = Set.union ns explored
+    in if Set.null ns
         then Set.union explored' (Set.singleton xy)
         else foldr (\xy' b -> Set.union b (connected b board xy')) explored' (Set.toList frontier)
