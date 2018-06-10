@@ -25,6 +25,7 @@ library:
   - base
   - containers
   - safe
+  - mtl
   source-dirs: library
   default-extensions:
   - NamedFieldPuns

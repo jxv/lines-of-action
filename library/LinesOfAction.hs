@@ -17,7 +17,7 @@ instance Show Board where
     show (Board m) = "\n  01234567\n" ++ concat [ show y ++ " " ++ [showChecker $ Map.lookup (x,y) m | x <- [0..7] ] ++ "\n" | y <- [0..7]]
         where
             showChecker :: Maybe Checker -> Char
-            showChecker Nothing = ' '
+            showChecker Nothing = '·'
             showChecker (Just c) = case c of
                 Checker'White -> 'W'
                 Checker'Black -> 'B'
@@ -184,9 +184,3 @@ connected explored board xy = let
     in if Set.null neighbors
         then Set.union explored' (Set.singleton xy)
         else foldr (\xy' b -> Set.union b (connected b board xy')) explored' (Set.toList frontier)
-
--- | An example function.
-main :: IO ()
-main = do
-    print emptyBoard
-    return ()
