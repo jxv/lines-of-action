@@ -49,6 +49,75 @@ play b c = case terminal b of
 applyMove' :: Board -> Move -> Maybe Board
 applyMove' board _move = Just board
 
+eliagbleMoves :: Board -> (Int, Int) -> Maybe [(Int, Int)]
+eliagbleMoves (Board m) xy = do
+  _ <- Map.lookup xy m
+  Nothing
+
+eliagbleVerticalMoves :: Board -> Checker -> (Int, Int) -> [(Int,Int)]
+eliagbleVerticalMoves b c xy =
+    filterOrdered c (lookupCells b $ listIndicesVert vertCount xy) ++
+    filterOrdered c (lookupCells b $ listIndicesHorz horzCount xy) ++
+    filterOrdered c (lookupCells b $ listIndicesUpwards upCount xy) ++
+    filterOrdered c (lookupCells b $ listIndicesDownwards downCount xy)
+  where
+    vertCount = verticalCount b xy
+    horzCount = horizontalCount b xy
+    upCount = upwardsCount b xy
+    downCount = downwardsCount b xy
+
+lookupCells :: Board -> [(Int, Int)] -> [((Int, Int), Maybe Checker)]
+lookupCells (Board m) xs = zip xs (map (flip Map.lookup m) xs)
+
+listIndicesVert :: Int -> (Int, Int) -> [(Int, Int)]
+listIndicesVert count xy = listIndices (\y -> (0,y)) count xy ++ listIndices (\y -> (0,-y)) count xy
+
+listIndicesHorz :: Int -> (Int, Int) -> [(Int, Int)]
+listIndicesHorz count xy = listIndices (\x -> (x,0)) count xy ++ listIndices (\x -> (-x,0)) count xy
+
+listIndicesUpwards :: Int -> (Int, Int) -> [(Int, Int)]
+listIndicesUpwards count xy = listIndices (\i -> (i,-i)) count xy ++ listIndices (\i -> (-i,i)) count xy
+
+listIndicesDownwards :: Int -> (Int, Int) -> [(Int, Int)]
+listIndicesDownwards count xy = listIndices (\i -> (i,i)) count xy ++ listIndices (\i -> (-i,-i)) count xy
+
+listIndices :: (Int -> (Int, Int)) -> Int -> (Int, Int) -> [(Int, Int)]
+listIndices f count (x,y) = filter inBoard $ map (\a -> let (u,v) = f a in (x + u, y + v)) (take count [1..])
+
+filterOrdered :: Eq b => b -> [(a, Maybe b)] -> [a]
+filterOrdered _ [] = []
+filterOrdered c ((a,b):cs) = case b of
+    Nothing -> a : filterOrdered c cs
+    Just c' -> if c == c'
+        then filterOrdered c cs
+        else [a]
+
+inBoard :: (Int, Int) -> Bool
+inBoard (x,y) = x >= 0 && x <= 7 && y >= 0 && y <= 7
+
+countFilledIndices :: Board -> [(Int, Int)] -> Int
+countFilledIndices (Board m) = length . filter id . map (flip Map.member m)
+
+verticalCount :: Board -> (Int, Int) -> Int
+verticalCount b (x,_) = countFilledIndices b [(x,y) | y <- [0..7]]
+
+horizontalCount :: Board -> (Int, Int) -> Int
+horizontalCount b (_,y) = countFilledIndices b [(x,y) | x <- [0..7]]
+
+-- Top left to bottom right
+downwardsCount :: Board -> (Int, Int) -> Int
+downwardsCount b (x,y) = countFilledIndices b $ zipWith
+  (\u v -> (x + u, y + v))
+  [(-7)..7]
+  [(-7)..7]
+
+-- Bottom left to top right
+upwardsCount :: Board -> (Int, Int) -> Int
+upwardsCount b (x,y) = countFilledIndices b $ zipWith
+  (\u v -> (x + u, y + v))
+  [7,6..(-7)]
+  [(-7)..7]
+
 opponent :: Checker -> Checker
 opponent Checker'Black = Checker'White
 opponent Checker'White = Checker'Black
