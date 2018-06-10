@@ -4,9 +4,13 @@ github: "jxv/lines-of-action"
 license: MIT
 author: "Joe Vargas"
 maintainer: "Joe Vargas"
+license-file: LICENSE.md
+category: Game
+synopsis: Lines of Action, 2-player strategy board game
+description: Lines of Action, 2-player strategy board game. mtl style code.
+
 
 extra-source-files:
-- CHANGELOG.md
 - LICENSE.md
 - package.yaml
 - README.md
@@ -16,10 +20,10 @@ ghc-options: -Wall
 
 library:
   dependencies:
-  - base
-  - containers
-  - safe
-  - mtl
+  - base >= 4.7 && <5
+  - containers >=0.5 && <0.6
+  - safe >=0.3 && <0.4
+  - mtl >= 2.2.2 && <3
   source-dirs: library
   default-extensions:
   - NamedFieldPuns
