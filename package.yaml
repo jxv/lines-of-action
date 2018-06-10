@@ -26,6 +26,8 @@ library:
   - containers
   - safe
   source-dirs: library
+  default-extensions:
+  - NamedFieldPuns
 
 benchmarks:
   lines-of-action-benchmarks:

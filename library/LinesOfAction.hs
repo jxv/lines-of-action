@@ -21,6 +21,7 @@ data Terminal
 data Move = Move
     { moveFrom :: (Int, Int)
     , moveTo :: (Int, Int)
+    , moveChecker :: Checker
     } deriving (Show, Eq)
 
 class Monad m => Game m where
@@ -47,15 +48,24 @@ play b c = case terminal b of
     Just term -> terminate b term
 
 applyMove' :: Board -> Move -> Maybe Board
-applyMove' board _move = Just board
+applyMove' board move@Move{moveFrom,moveTo} = do
+    cells <- moveCells board moveFrom
+    if elem moveTo cells
+        then Just $ moveCheckerOnBoard board move
+        else Nothing
 
-eliagbleMoves :: Board -> (Int, Int) -> Maybe [(Int, Int)]
-eliagbleMoves (Board m) xy = do
-  _ <- Map.lookup xy m
-  Nothing
+moveCheckerOnBoard :: Board -> Move -> Board
+moveCheckerOnBoard (Board m) move = Board
+    $ Map.delete (moveFrom move)
+    $ Map.insert (moveTo move) (moveChecker move) m
 
-eliagbleVerticalMoves :: Board -> Checker -> (Int, Int) -> [(Int,Int)]
-eliagbleVerticalMoves b c xy =
+moveCells :: Board -> (Int, Int) -> Maybe [(Int, Int)]
+moveCells b@(Board m) xy = do
+  c <- Map.lookup xy m
+  return $ eliagbleMoveCells b c xy
+
+eliagbleMoveCells :: Board -> Checker -> (Int, Int) -> [(Int,Int)]
+eliagbleMoveCells b c xy =
     filterOrdered c (lookupCells b $ listIndicesVert vertCount xy) ++
     filterOrdered c (lookupCells b $ listIndicesHorz horzCount xy) ++
     filterOrdered c (lookupCells b $ listIndicesUpwards upCount xy) ++
