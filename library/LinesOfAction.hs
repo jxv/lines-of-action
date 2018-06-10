@@ -11,7 +11,16 @@ data Checker
     deriving (Show, Eq)
 
 newtype Board = Board (Map.Map (Int, Int) Checker)
-    deriving (Show, Eq)
+    deriving (Eq)
+
+instance Show Board where
+    show (Board m) = "\n  01234567\n" ++ concat [ show y ++ " " ++ [showChecker $ Map.lookup (x,y) m | x <- [0..7] ] ++ "\n" | y <- [0..7]]
+        where
+            showChecker :: Maybe Checker -> Char
+            showChecker Nothing = ' '
+            showChecker (Just c) = case c of
+                Checker'White -> 'W'
+                Checker'Black -> 'B'
 
 data Terminal
     = Terminal'Winner Checker
