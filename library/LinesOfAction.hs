@@ -4,6 +4,7 @@ module LinesOfAction where
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Safe (headMay)
+import Data.Maybe (catMaybes)
 
 data Checker
     = Checker'Black
@@ -73,11 +74,16 @@ movableCells :: Board -> (Int, Int) -> Maybe [(Int, Int)]
 movableCells b@(Board m) xy = flip (movableCellsWithChecker b) xy <$> Map.lookup xy m
 
 movableCellsWithChecker :: Board -> Checker -> (Int, Int) -> [(Int,Int)]
-movableCellsWithChecker b checker xy =
-    filterOrdered checker (lookupCells b $ listIndicesVert vertCount xy) ++
-    filterOrdered checker (lookupCells b $ listIndicesHorz horzCount xy) ++
-    filterOrdered checker (lookupCells b $ listIndicesUpwards upCount xy) ++
-    filterOrdered checker (lookupCells b $ listIndicesDownwards downCount xy)
+movableCellsWithChecker b checker xy = catMaybes
+    [ filterOrdered checker (lookupCells b $ listIndicesVertUp vertCount xy)
+    , filterOrdered checker (lookupCells b $ listIndicesVertDown vertCount xy)
+    , filterOrdered checker (lookupCells b $ listIndicesHorzLeft horzCount xy)
+    , filterOrdered checker (lookupCells b $ listIndicesHorzRight horzCount xy)
+    , filterOrdered checker (lookupCells b $ listIndicesUpwardsLeft upCount xy) 
+    , filterOrdered checker (lookupCells b $ listIndicesUpwardsRight upCount xy) 
+    , filterOrdered checker (lookupCells b $ listIndicesDownwardsLeft downCount xy)
+    , filterOrdered checker (lookupCells b $ listIndicesDownwardsRight downCount xy)
+    ]
   where
     vertCount = verticalCount b xy
     horzCount = horizontalCount b xy
@@ -87,28 +93,29 @@ movableCellsWithChecker b checker xy =
 lookupCells :: Board -> [(Int, Int)] -> [((Int, Int), Maybe Checker)]
 lookupCells (Board m) xs = zip xs (map (flip Map.lookup m) xs)
 
-listIndicesVert :: Int -> (Int, Int) -> [(Int, Int)]
-listIndicesVert count xy = listIndices (\y -> (0,y)) count xy ++ listIndices (\y -> (0,-y)) count xy
-
-listIndicesHorz :: Int -> (Int, Int) -> [(Int, Int)]
-listIndicesHorz count xy = listIndices (\x -> (x,0)) count xy ++ listIndices (\x -> (-x,0)) count xy
-
-listIndicesUpwards :: Int -> (Int, Int) -> [(Int, Int)]
-listIndicesUpwards count xy = listIndices (\i -> (i,-i)) count xy ++ listIndices (\i -> (-i,i)) count xy
-
-listIndicesDownwards :: Int -> (Int, Int) -> [(Int, Int)]
-listIndicesDownwards count xy = listIndices (\i -> (i,i)) count xy ++ listIndices (\i -> (-i,-i)) count xy
+listIndicesVertUp, listIndicesVertDown, listIndicesHorzLeft, listIndicesHorzRight, listIndicesUpwardsLeft, listIndicesUpwardsRight, listIndicesDownwardsLeft, listIndicesDownwardsRight :: Int -> (Int, Int) -> [(Int, Int)]
+listIndicesVertUp count xy = listIndices (\y -> (0,-y)) count xy
+listIndicesVertDown count xy = listIndices (\y -> (0,y)) count xy
+listIndicesHorzLeft count xy = listIndices (\x -> (-x,0)) count xy
+listIndicesHorzRight count xy = listIndices (\x -> (x,0)) count xy
+listIndicesUpwardsLeft count xy = listIndices (\i -> (-i,i)) count xy
+listIndicesUpwardsRight count xy = listIndices (\i -> (i,-i)) count xy
+listIndicesDownwardsLeft count xy = listIndices (\i -> (-i,-i)) count xy
+listIndicesDownwardsRight count xy = listIndices (\i -> (i,i)) count xy
 
 listIndices :: (Int -> (Int, Int)) -> Int -> (Int, Int) -> [(Int, Int)]
-listIndices f count (x,y) = filter inBoard $ map (\a -> let (u,v) = f a in (x + u, y + v)) (take count [1..])
+listIndices f count (x,y) = map (\a -> let (u,v) = f a in (x + u, y + v)) (take count [1..])
 
-filterOrdered :: Eq b => b -> [(a, Maybe b)] -> [a]
-filterOrdered _ [] = []
-filterOrdered c ((a,b):cs) = case b of
-    Nothing -> a : filterOrdered c cs
+filterOrdered :: Eq b => b -> [((Int, Int), Maybe b)] -> Maybe (Int, Int)
+filterOrdered _ [] = Nothing
+filterOrdered c ((a,b):[]) = case b of
+    Nothing -> if inBoard a then Just a else Nothing
+    Just c' -> if c == c' then Nothing else Just a
+filterOrdered c ((_,b):cs) = case b of
+    Nothing -> filterOrdered c cs
     Just c' -> if c == c'
         then filterOrdered c cs
-        else [a]
+        else Nothing
 
 inBoard :: (Int, Int) -> Bool
 inBoard (x,y) = x >= 0 && x <= 7 && y >= 0 && y <= 7
